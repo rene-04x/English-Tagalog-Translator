@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>English ↔ Tagalog Translator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        textarea { width: 100%; }
+        select, button { margin-top: 10px; padding: 5px; }
+        #outputText { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>English ↔ Tagalog Translator</h2>
+    <textarea id="inputText" rows="5" placeholder="Type text here..."></textarea><br>
+    <select id="direction">
+        <option value="en-tl">English → Tagalog</option>
+        <option value="tl-en">Tagalog → English</option>
+    </select><br>
+    <button onclick="translateText()">Translate</button>
+    <p id="outputText"></p>
+
+    <script>
+        async function translateText() {
+            const text = document.getElementById("inputText").value;
+            const direction = document.getElementById("direction").value;
+            const output = document.getElementById("outputText");
+            output.innerText = "Translating...";
+
+            try {
+                const response = await fetch("http://127.0.0.1:8000/translate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text, direction })
+                });
+                const data = await response.json();
+                output.innerText = data.translation || data.error;
+            } catch (err) {
+                output.innerText = "Error connecting to server.";
+            }
+        }
+    </script>
+</body>
+</html>

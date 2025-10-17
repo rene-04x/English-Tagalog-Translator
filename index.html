@@ -188,12 +188,22 @@ swapBtn.addEventListener("click", () => {
 copyBtn.addEventListener("click", () => {
     if(outputText.value){
         navigator.clipboard.writeText(outputText.value);
-        copyMessage.style.opacity = "1";
-        setTimeout(()=>{copyMessage.style.opacity="0";},1500);
+
+        // Change button text to "Copied!"
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = "✅ Copied!";
+        copyBtn.disabled = true; // optional: disable briefly
+
+        // Revert back after 1.5 seconds
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.disabled = false; // re-enable if appropriate
+        }, 1500);
     }
 });
 
 // Clear all
+// Also disable Copy on Clear
 clearBtn.addEventListener("click", () => {
     inputText.value = "";
     outputText.value = "";
@@ -213,13 +223,19 @@ function updateLabels() {
     }
 }
 
-// Show/hide Speak/Stop buttons
+// Initially disable Copy button
+copyBtn.disabled = true;
+
+// Update controls visibility including Copy button
 function updateControlsVisibility() {
     if(!outputText.value.trim()){
         speakBtn.style.display = "none";
         stopBtn.style.display = "none";
         voiceSelect.style.display = "none";
         wave.style.display = "none";
+        copyBtn.disabled = true; // disable Copy if no output
+    } else {
+        copyBtn.disabled = false; // enable Copy when output exists
     }
 }
 

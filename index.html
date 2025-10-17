@@ -123,6 +123,13 @@ button:hover:enabled {
 <body>
 <div class="translator-card">
     <h2>🌐 English ↔ Tagalog Translator</h2>
+    <div style="text-align:center; margin-bottom:20px;">
+        <select id="modeSelect" style="background:#1c1c1c; color:#00ffea; border:1px solid #00ffea; border-radius:10px; padding:8px 15px; font-family:'Orbitron';">
+          <option value="text">📝 Text Mode</option>
+          <option value="image">🖼️ Image Mode</option>
+        </select>
+      </div>
+      <div id="textMode">          
     <div class="translator-container">
         <div class="box-container">
             <label id="inputLabel">English</label>
@@ -157,7 +164,35 @@ button:hover:enabled {
         </div>
     </div>    
 </div>
+<div id="imageMode" style="display:none; text-align:center;">
+    <input type="file" id="imageUpload" accept="image/*" style="margin-bottom:15px;">
+    <button id="processImageBtn" style="background-color:#00ffea; color:#121212;">📷 Extract & Translate</button>
+    <img id="previewImage" style="max-width:100%; display:none; border-radius:10px; margin-top:10px;">
+  
+    <div class="box-container" style="margin-top:20px;">
+      <label>Extracted Text</label>
+      <textarea id="ocrInputText" rows="6" placeholder="Extracted text appears here..."></textarea>
+    </div>
 
+  
+    <div class="box-container">
+      <label>Translation</label>
+      <textarea id="ocrOutputText" rows="6" readonly placeholder="Translation appears here..."></textarea>
+    </div>
+  
+    <div style="margin-top:15px;">
+      <button id="copyOcrBtn" style="background-color:#00d9ff; color:#121212;">📋 Copy Output</button>
+      <button id="clearOcrBtn" style="background-color:#ff1744; color:#fff;">🧹 Clear All</button>
+    </div>
+  
+    <div id="wave" style="display:none; justify-content:center; margin-top:10px;">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+  </div>
+  
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <script>
 const inputText = document.getElementById("inputText");
 const outputText = document.getElementById("outputText");
@@ -331,6 +366,127 @@ function stopSpeaking(){
 translateBtn.addEventListener("click", translateText);
 updateLabels();
 updateControlsVisibility();
+
+const modeSelect = document.getElementById("modeSelect");
+const textMode = document.getElementById("textMode");
+const imageMode = document.getElementById("imageMode");
+
+modeSelect.addEventListener("change", () => {
+    if(modeSelect.value === "image"){
+        textMode.style.display = "none";
+        imageMode.style.display = "block";
+    } else {
+        textMode.style.display = "block";
+        imageMode.style.display = "none";
+    }
+});
+
+const imageUpload = document.getElementById("imageUpload");
+const processImageBtn = document.getElementById("processImageBtn");
+const ocrInputText = document.getElementById("ocrInputText");
+const ocrOutputText = document.getElementById("ocrOutputText");
+const copyOcrBtn = document.getElementById("copyOcrBtn");
+const clearOcrBtn = document.getElementById("clearOcrBtn");
+
+// Show image preview when a file is selected
+imageUpload.addEventListener("change", () => {
+    const file = imageUpload.files[0];
+    const preview = document.getElementById("previewImage");
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.style.display = "none";
+        preview.src = "";
+    }
+});
+
+processImageBtn.addEventListener("click", async () => {
+    if(!imageUpload.files.length) return alert("Please select an image first!");
+    const file = imageUpload.files[0];
+    ocrOutputText.value = "🔍 Extracting text...";
+    wave.style.display = "flex";
+    copyOcrBtn.disabled = true;
+    clearOcrBtn.disabled = true;
+
+    try {
+        // Extract text
+        const { data: { text } } = await Tesseract.recognize(file, 'eng+fil');
+        ocrInputText.value = text.trim();
+        ocrOutputText.value = "Translating...";
+
+        // Translate text
+        const response = await fetch("http://127.0.0.1:8000/translate", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ text: text.trim(), direction: "en-tl" })
+        });
+        const data = await response.json();
+        ocrOutputText.value = data.translation || "❌ Translation failed.";
+
+    } catch(err){
+        console.error(err);
+        ocrOutputText.value = "❌ OCR failed. Try clearer image.";
+    } finally {
+        wave.style.display = "none";
+        updateImageModeButtons(); // ✅ enable/disable buttons after translation completes
+    }
+});
+
+function updateImageModeButtons() {
+    const hasOcrInput = ocrInputText.value.trim().length > 0;
+    const hasOcrOutput = ocrOutputText.value.trim().length > 0;
+
+    // Copy button enabled only if translation exists
+    copyOcrBtn.disabled = !hasOcrOutput;
+
+    // Clear button enabled if input or output exists
+    clearOcrBtn.disabled = !(hasOcrInput || hasOcrOutput);
+}
+
+// Track changes on OCR input/output
+ocrInputText.addEventListener("input", updateImageModeButtons);
+ocrOutputText.addEventListener("input", updateImageModeButtons);
+
+// Modify Copy Output (OCR)
+copyOcrBtn.addEventListener("click", () => {
+    if (ocrOutputText.value.trim()) {
+        navigator.clipboard.writeText(ocrOutputText.value);
+        const original = copyOcrBtn.textContent;
+        copyOcrBtn.textContent = "✅ Copied!";
+        copyOcrBtn.disabled = true;
+        setTimeout(() => {
+            copyOcrBtn.textContent = original;
+            updateImageModeButtons();
+        }, 1500);
+    }
+});
+
+// Modify Clear All (OCR)
+clearOcrBtn.addEventListener("click", () => {
+    // Clear input/output
+    ocrInputText.value = "";
+    ocrOutputText.value = "";
+
+    // Reset file input and preview
+    imageUpload.value = "";
+    const preview = document.getElementById("previewImage");
+    if (preview) {
+        preview.src = "";
+        preview.style.display = "none";
+    }
+
+    // Re-disable buttons after clearing
+    updateImageModeButtons();
+});
+
+// Initialize states when page loads
+updateImageModeButtons();
+
 </script>
 </body>
 </html>

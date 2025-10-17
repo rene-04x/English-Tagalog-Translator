@@ -88,19 +88,27 @@ button:hover:enabled { background-color: #084c87; }
 }
 #controls {
     display: flex;
+    justify-content: center; /* center the items horizontally */
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    margin-top: 15px;
+    margin-top: 20px; /* more space from above */
+}
+
+#voiceSelect {
+    display: inline-block;
+    margin-bottom: 0; /* ensure aligned with button */
+}
+#speakBtn {
+    display: inline-block;
 }
 #speakBtn { background-color: #0d3b66; color: #fff; }
-#stopBtn { background-color: #e63946; color: #fff; }
 .wave { display: none; align-items: center; gap: 4px; height: 24px; }
 .bar { width: 4px; height: 10px; background-color: #0d3b66; animation: wave 1s infinite ease-in-out; }
 .bar:nth-child(1){animation-delay:0s;} .bar:nth-child(2){animation-delay:0.1s;}
 .bar:nth-child(3){animation-delay:0.2s;} .bar:nth-child(4){animation-delay:0.3s;}
 .bar:nth-child(5){animation-delay:0.4s;}
-@keyframes wave{0%,100%{transform:scaleY(0.4);}50%{transform:scaleY(1.4);}}
+@keyframes wave{0%,100%{transform:scaleY(0.4);}50%{transform:scaleY(1.4);} }
 @media (max-width:700px){
     .translator-container{flex-direction:column;}
 }
@@ -133,17 +141,15 @@ button:hover:enabled { background-color: #084c87; }
         <button id="translateBtn" disabled>Translate</button>
         <button id="copyBtn">📋 Copy Output</button>
         <button id="clearBtn">🧹 Clear All</button>
-        <span id="copyMessage">✅ Copied!</span>
     </div>
 
     <div id="controls">
         <select id="voiceSelect" style="display:none;"></select>
         <button id="speakBtn" style="display:none;">🔊 Speak</button>
-        <button id="stopBtn" style="display:none;">⏹ Stop</button>
         <div class="wave" id="wave">
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-    </div>
+    </div>    
 </div>
 
 <script>
@@ -152,11 +158,9 @@ const outputText = document.getElementById("outputText");
 const translateBtn = document.getElementById("translateBtn");
 const swapBtn = document.getElementById("swapBtn");
 const copyBtn = document.getElementById("copyBtn");
-const copyMessage = document.getElementById("copyMessage");
 const clearBtn = document.getElementById("clearBtn");
 const voiceSelect = document.getElementById("voiceSelect");
 const speakBtn = document.getElementById("speakBtn");
-const stopBtn = document.getElementById("stopBtn");
 const wave = document.getElementById("wave");
 const direction = document.getElementById("direction");
 const inputLabel = document.getElementById("inputLabel");
@@ -170,7 +174,9 @@ let currentUtterance = null;
 inputText.addEventListener("input", () => {
     translateBtn.disabled = inputText.value.trim() === "";
     charCounter.textContent = `${inputText.value.length} characters`;
+    updateControlsVisibility(); // update clear button state
 });
+
 
 // Swap button
 swapBtn.addEventListener("click", () => {
@@ -188,31 +194,26 @@ swapBtn.addEventListener("click", () => {
 copyBtn.addEventListener("click", () => {
     if(outputText.value){
         navigator.clipboard.writeText(outputText.value);
-
-        // Change button text to "Copied!"
         const originalText = copyBtn.textContent;
         copyBtn.textContent = "✅ Copied!";
-        copyBtn.disabled = true; // optional: disable briefly
-
-        // Revert back after 1.5 seconds
+        copyBtn.disabled = true;
         setTimeout(() => {
             copyBtn.textContent = originalText;
-            copyBtn.disabled = false; // re-enable if appropriate
+            copyBtn.disabled = false;
         }, 1500);
     }
 });
 
 // Clear all
-// Also disable Copy on Clear
 clearBtn.addEventListener("click", () => {
     inputText.value = "";
     outputText.value = "";
     translateBtn.disabled = true;
     charCounter.textContent = "0 characters";
-    updateControlsVisibility();
+    updateControlsVisibility(); // disables Clear and other buttons properly
 });
 
-// Update input/output labels
+// Update labels
 function updateLabels() {
     if(direction.value === "en-tl"){
         inputLabel.textContent = "English";
@@ -223,29 +224,36 @@ function updateLabels() {
     }
 }
 
-// Initially disable Copy button
-copyBtn.disabled = true;
-
-// Update controls visibility including Copy button
+// Update controls visibility
 function updateControlsVisibility() {
-    if(!outputText.value.trim()){
-        speakBtn.style.display = "none";
-        stopBtn.style.display = "none";
-        voiceSelect.style.display = "none";
-        wave.style.display = "none";
-        copyBtn.disabled = true; // disable Copy if no output
-    } else {
-        copyBtn.disabled = false; // enable Copy when output exists
-    }
+    const hasOutput = outputText.value.trim().length > 0;
+    const hasInput = inputText.value.trim().length > 0;
+
+    // Copy button enabled only if there is output
+    copyBtn.disabled = !hasOutput;
+
+    // Speak button visible only if there is output
+    speakBtn.style.display = hasOutput ? "inline-block" : "none";
+
+    // Voice select visible only if there is output
+    voiceSelect.style.display = hasOutput ? "inline-block" : "none";
+
+    // Wave animation reset
+    if(!hasOutput) wave.style.display = "none";
+
+    // Clear All button enabled only if there is input or output
+    clearBtn.disabled = !(hasInput || hasOutput);
+
+    // Reset Speak button text if output cleared
+    if(!hasOutput) speakBtn.textContent = "🔊 Speak";
 }
+
 
 // Load voices
 function loadVoices() {
     voices = speechSynthesis.getVoices();
     voiceSelect.innerHTML = "";
-    const filteredVoices = voices.filter(v =>
-        v.lang.startsWith("en") || v.lang.startsWith("fil") || v.lang.startsWith("tl")
-    );
+    const filteredVoices = voices.filter(v => v.lang.startsWith("en") || v.lang.startsWith("fil") || v.lang.startsWith("tl"));
     filteredVoices.forEach(voice => {
         const option = document.createElement("option");
         option.value = voice.name;
@@ -259,7 +267,7 @@ window.speechSynthesis.onvoiceschanged = loadVoices;
 async function translateText() {
     const text = inputText.value.trim();
     outputText.value = "Translating...";
-    speakBtn.style.display = stopBtn.style.display = wave.style.display = voiceSelect.style.display = "none";
+    speakBtn.style.display = wave.style.display = voiceSelect.style.display = "none";
     if (!text) return;
 
     try {
@@ -271,35 +279,47 @@ async function translateText() {
         const data = await response.json();
         const translation = data.translation || data.error || "Error: No response.";
         outputText.value = translation;
-
         updateControlsVisibility();
-
-        if(data.translation){
-            speakBtn.style.display = stopBtn.style.display = voiceSelect.style.display = "inline-block";
-            speakBtn.onclick = () => speak(translation,direction.value);
-            stopBtn.onclick = stopSpeaking;
-        }
     } catch(e){
         outputText.value = "❌ Error connecting to server.";
     }
 }
 
-// Speech functions
-function speak(text, dir){
-    stopSpeaking();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = dir==="en-tl"?"fil-PH":"en-US";
-    const selectedVoice = voiceSelect.value;
-    if(selectedVoice){
-        const voice = voices.find(v=>v.name===selectedVoice);
-        if(voice) utterance.voice = voice;
+// Speak/Stop toggle
+speakBtn.addEventListener("click", () => {
+    if(currentUtterance){
+        // Stop if already speaking
+        stopSpeaking();
+    } else {
+        const text = outputText.value;
+        const dir = direction.value;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = dir === "en-tl" ? "fil-PH" : "en-US";
+        const selectedVoice = voiceSelect.value;
+        if(selectedVoice){
+            const voice = voices.find(v => v.name === selectedVoice);
+            if(voice) utterance.voice = voice;
+        }
+        currentUtterance = utterance;
+        wave.style.display = "flex";
+        speakBtn.textContent = "⏹ Stop";
+
+        utterance.onend = () => {
+            currentUtterance = null;
+            wave.style.display = "none";
+            speakBtn.textContent = "🔊 Speak";
+        };
+
+        speechSynthesis.speak(utterance);
     }
-    currentUtterance = utterance;
-    wave.style.display="flex";
-    utterance.onend=()=>wave.style.display="none";
-    speechSynthesis.speak(utterance);
+});
+
+function stopSpeaking(){
+    speechSynthesis.cancel();
+    currentUtterance = null;
+    wave.style.display = "none";
+    speakBtn.textContent = "🔊 Speak";
 }
-function stopSpeaking(){speechSynthesis.cancel();currentUtterance=null;wave.style.display="none";}
 
 // Connect translate button
 translateBtn.addEventListener("click", translateText);

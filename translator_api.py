@@ -4,6 +4,7 @@ from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
 from fastapi.middleware.cors import CORSMiddleware
 import torch
 import os
+import requests
 from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -110,6 +111,37 @@ def translate(request: TextRequest):
     translated_text = refine_translation_with_ai(request.text, translated_text, request.direction)
 
     return {"translation": translated_text}
+
+# --- 📘 Definition Endpoint ---
+@app.get("/define")
+async def define(word: str):
+    """
+    Fetch definition using free Dictionary API first.
+    If unavailable, fallback to OpenAI for an AI-generated explanation.
+    """
+    try:
+        # 1️⃣ Try free dictionary API first
+        dict_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+        res = requests.get(dict_url)
+        if res.status_code == 200:
+            data = res.json()
+            meaning = data[0]["meanings"][0]["definitions"][0]["definition"]
+            return {"definition": meaning}
+
+        # 2️⃣ Fallback: use OpenAI for a short, simple definition
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful dictionary assistant."},
+                {"role": "user", "content": f"Define '{word}' in simple English, briefly."}
+            ],
+        )
+        definition = response.choices[0].message.content.strip()
+        return {"definition": definition}
+
+    except Exception as e:
+        return {"definition": f"❌ Error fetching definition: {str(e)}"}
+
 
 # --- Run Server ---
 if __name__ == "__main__":

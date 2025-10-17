@@ -154,6 +154,7 @@ button:hover:enabled {
         <button id="translateBtn" disabled>Translate</button>
         <button id="copyBtn">📋 Copy Output</button>
         <button id="clearBtn">🧹 Clear All</button>
+        <button id="defineBtn" disabled>📘 Show Definition</button>
     </div>
 
     <div id="controls">
@@ -190,6 +191,11 @@ button:hover:enabled {
     </div>
   </div>
   
+  <div id="definitionBox" 
+  style="margin-top: 15px; padding: 12px; border: 1px solid #00ffea; border-radius: 10px; 
+         background: #1c1c1c; color: #00ffd5; display: none; font-size: 0.95rem;">
+</div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
@@ -289,6 +295,42 @@ function updateControlsVisibility() {
     if(!hasOutput) speakBtn.textContent = "🔊 Speak";
 }
 
+const defineBtn = document.getElementById("defineBtn");
+const definitionBox = document.getElementById("definitionBox");
+
+// Modify updateControlsVisibility to handle the define button
+function updateControlsVisibility() {
+    const hasOutput = outputText.value.trim().length > 0;
+    const hasInput = inputText.value.trim().length > 0;
+
+    copyBtn.disabled = !hasOutput;
+    speakBtn.style.display = hasOutput ? "inline-block" : "none";
+    voiceSelect.style.display = hasOutput ? "inline-block" : "none";
+    clearBtn.disabled = !(hasInput || hasOutput);
+    defineBtn.disabled = !hasOutput;
+    definitionBox.style.display = "none";
+
+    if(!hasOutput) wave.style.display = "none";
+    if(!hasOutput) speakBtn.textContent = "🔊 Speak";
+}
+
+// Fetch definition
+defineBtn.addEventListener("click", async () => {
+    const word = outputText.value.trim();
+    if(!word) return;
+
+    definitionBox.style.display = "block";
+    definitionBox.textContent = "📖 Searching definition...";
+
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/define?word=${encodeURIComponent(word)}`);
+        const data = await response.json();
+        definitionBox.textContent = data.definition || "No definition found.";
+    } catch (err) {
+        console.error(err);
+        definitionBox.textContent = "❌ Error fetching definition.";
+    }
+});
 
 // Load voices
 function loadVoices() {

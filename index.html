@@ -1,208 +1,294 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>English ↔ Tagalog Translator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 600px;
-            margin: auto;
-            background: #f8fafc;
-        }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-            resize: none;
-        }
-        select, button {
-            margin-top: 10px;
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-        }
-        button:hover {
-            background-color: #0069d9;
-        }
-        #outputText {
-            margin-top: 20px;
-            font-weight: bold;
-            font-size: 1.1em;
-            background: white;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-        }
-        #controls {
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        #speakBtn, #stopBtn {
-            display: none;
-        }
-        #voiceSelect {
-            display: none;
-        }
-
-        /* 🎵 Speaking animation */
-        .wave {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            height: 24px;
-            gap: 3px;
-            margin-left: 10px;
-        }
-        .bar {
-            width: 3px;
-            height: 10px;
-            background-color: #007bff;
-            animation: wave 1s infinite ease-in-out;
-        }
-        .bar:nth-child(1) { animation-delay: 0s; }
-        .bar:nth-child(2) { animation-delay: 0.1s; }
-        .bar:nth-child(3) { animation-delay: 0.2s; }
-        .bar:nth-child(4) { animation-delay: 0.3s; }
-        .bar:nth-child(5) { animation-delay: 0.4s; }
-
-        @keyframes wave {
-            0%, 100% { transform: scaleY(0.4); }
-            50% { transform: scaleY(1.4); }
-        }
-    </style>
+<meta charset="UTF-8">
+<title>English ↔ Tagalog Translator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to right, #f0f4f8, #d9e2ec);
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+}
+.translator-card {
+    background: #fff;
+    padding: 30px 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 800px;
+}
+h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #0d3b66;
+}
+.translator-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 5px;
+}
+.box-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #0d3b66;
+}
+textarea {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #ccc;
+    resize: none;
+    font-size: 1rem;
+}
+textarea:focus { border-color: #0d3b66; outline: none; }
+.counter {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 5px;
+}
+button, select {
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+button:disabled { background-color: #aac4e0; cursor: not-allowed; }
+button:hover:enabled { background-color: #084c87; }
+#translateBtn { background-color: #0d3b66; color: #fff; }
+#swapBtn { background-color: #e0e0e0; color: #0d3b66; margin: 0 10px; }
+#copyBtn { background-color: #43aa8b; color: #fff; }
+#clearBtn { background-color: #e63946; color: #fff; margin-left: 5px; }
+#copyMessage {
+    display: inline-block;
+    margin-left: 10px;
+    color: #43aa8b;
+    font-weight: 600;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+#outputText {
+    width: 100%;
+    min-height: 150px;
+    padding: 15px;
+    border-radius: 12px;
+    border: 1px solid #d0d7de;
+    background: #f1f5f9;
+    font-weight: 500;
+}
+#controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+#speakBtn { background-color: #0d3b66; color: #fff; }
+#stopBtn { background-color: #e63946; color: #fff; }
+.wave { display: none; align-items: center; gap: 4px; height: 24px; }
+.bar { width: 4px; height: 10px; background-color: #0d3b66; animation: wave 1s infinite ease-in-out; }
+.bar:nth-child(1){animation-delay:0s;} .bar:nth-child(2){animation-delay:0.1s;}
+.bar:nth-child(3){animation-delay:0.2s;} .bar:nth-child(4){animation-delay:0.3s;}
+.bar:nth-child(5){animation-delay:0.4s;}
+@keyframes wave{0%,100%{transform:scaleY(0.4);}50%{transform:scaleY(1.4);}}
+@media (max-width:700px){
+    .translator-container{flex-direction:column;}
+}
+</style>
 </head>
 <body>
+<div class="translator-card">
     <h2>🌐 English ↔ Tagalog Translator</h2>
-
-    <textarea id="inputText" rows="5" placeholder="Type text here..."></textarea><br>
-    
-    <select id="direction">
-        <option value="en-tl">English → Tagalog</option>
-        <option value="tl-en">Tagalog → English</option>
-    </select><br>
-
-    <button onclick="translateText()">Translate</button>
-
-    <p id="outputText"></p>
-
-    <div id="controls">
-        <select id="voiceSelect"></select>
-        <button id="speakBtn">🔊 Speak</button>
-        <button id="stopBtn" style="background-color:#e74c3c;">⏹ Stop</button>
-
-        <!-- Animated speaking indicator -->
-        <div class="wave" id="wave">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
+    <div class="translator-container">
+        <div class="box-container">
+            <label id="inputLabel">English</label>
+            <textarea id="inputText" rows="8" placeholder="Type text here..."></textarea>
+            <div class="counter" id="charCounter">0 characters</div>
+        </div>
+        <div class="box-container">
+            <label id="outputLabel">Tagalog</label>
+            <textarea id="outputText" rows="8" readonly placeholder="Translation appears here..."></textarea>
         </div>
     </div>
 
-    <script>
-        let voices = [];
-        let currentUtterance = null;
-        const wave = document.getElementById("wave");
+    <div style="display:flex; justify-content:center; align-items:center; margin-bottom:15px;">
+        <button id="swapBtn">🔄 Swap</button>
+    </div>
 
-        function loadVoices() {
-            voices = speechSynthesis.getVoices();
-            const voiceSelect = document.getElementById("voiceSelect");
-            voiceSelect.innerHTML = "";
+    <div style="display:flex; gap:5px; justify-content:center; flex-wrap:wrap; margin-bottom:10px;">
+        <select id="direction" style="display:none;">
+            <option value="en-tl">English → Tagalog</option>
+            <option value="tl-en">Tagalog → English</option>
+        </select>
+        <button id="translateBtn" disabled>Translate</button>
+        <button id="copyBtn">📋 Copy Output</button>
+        <button id="clearBtn">🧹 Clear All</button>
+        <span id="copyMessage">✅ Copied!</span>
+    </div>
 
-            const filteredVoices = voices.filter(v =>
-                v.lang.startsWith("en") ||
-                v.lang.startsWith("fil") ||
-                v.lang.startsWith("tl")
-            );
+    <div id="controls">
+        <select id="voiceSelect" style="display:none;"></select>
+        <button id="speakBtn" style="display:none;">🔊 Speak</button>
+        <button id="stopBtn" style="display:none;">⏹ Stop</button>
+        <div class="wave" id="wave">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+    </div>
+</div>
 
-            filteredVoices.forEach(voice => {
-                const option = document.createElement("option");
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                voiceSelect.appendChild(option);
-            });
+<script>
+const inputText = document.getElementById("inputText");
+const outputText = document.getElementById("outputText");
+const translateBtn = document.getElementById("translateBtn");
+const swapBtn = document.getElementById("swapBtn");
+const copyBtn = document.getElementById("copyBtn");
+const copyMessage = document.getElementById("copyMessage");
+const clearBtn = document.getElementById("clearBtn");
+const voiceSelect = document.getElementById("voiceSelect");
+const speakBtn = document.getElementById("speakBtn");
+const stopBtn = document.getElementById("stopBtn");
+const wave = document.getElementById("wave");
+const direction = document.getElementById("direction");
+const inputLabel = document.getElementById("inputLabel");
+const outputLabel = document.getElementById("outputLabel");
+const charCounter = document.getElementById("charCounter");
 
-            if (filteredVoices.length > 0) {
-                voiceSelect.style.display = "inline-block";
-            }
+let voices = [];
+let currentUtterance = null;
+
+// Character counter & enable translate
+inputText.addEventListener("input", () => {
+    translateBtn.disabled = inputText.value.trim() === "";
+    charCounter.textContent = `${inputText.value.length} characters`;
+});
+
+// Swap button
+swapBtn.addEventListener("click", () => {
+    const tempText = inputText.value;
+    inputText.value = outputText.value;
+    outputText.value = tempText;
+    direction.value = direction.value === "en-tl" ? "tl-en" : "en-tl";
+    updateLabels();
+    translateBtn.disabled = inputText.value.trim() === "";
+    charCounter.textContent = `${inputText.value.length} characters`;
+    updateControlsVisibility();
+});
+
+// Copy output
+copyBtn.addEventListener("click", () => {
+    if(outputText.value){
+        navigator.clipboard.writeText(outputText.value);
+        copyMessage.style.opacity = "1";
+        setTimeout(()=>{copyMessage.style.opacity="0";},1500);
+    }
+});
+
+// Clear all
+clearBtn.addEventListener("click", () => {
+    inputText.value = "";
+    outputText.value = "";
+    translateBtn.disabled = true;
+    charCounter.textContent = "0 characters";
+    updateControlsVisibility();
+});
+
+// Update input/output labels
+function updateLabels() {
+    if(direction.value === "en-tl"){
+        inputLabel.textContent = "English";
+        outputLabel.textContent = "Tagalog";
+    } else {
+        inputLabel.textContent = "Tagalog";
+        outputLabel.textContent = "English";
+    }
+}
+
+// Show/hide Speak/Stop buttons
+function updateControlsVisibility() {
+    if(!outputText.value.trim()){
+        speakBtn.style.display = "none";
+        stopBtn.style.display = "none";
+        voiceSelect.style.display = "none";
+        wave.style.display = "none";
+    }
+}
+
+// Load voices
+function loadVoices() {
+    voices = speechSynthesis.getVoices();
+    voiceSelect.innerHTML = "";
+    const filteredVoices = voices.filter(v =>
+        v.lang.startsWith("en") || v.lang.startsWith("fil") || v.lang.startsWith("tl")
+    );
+    filteredVoices.forEach(voice => {
+        const option = document.createElement("option");
+        option.value = voice.name;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
+    });
+}
+window.speechSynthesis.onvoiceschanged = loadVoices;
+
+// Translate
+async function translateText() {
+    const text = inputText.value.trim();
+    outputText.value = "Translating...";
+    speakBtn.style.display = stopBtn.style.display = wave.style.display = voiceSelect.style.display = "none";
+    if (!text) return;
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/translate", {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({text,direction:direction.value})
+        });
+        const data = await response.json();
+        const translation = data.translation || data.error || "Error: No response.";
+        outputText.value = translation;
+
+        updateControlsVisibility();
+
+        if(data.translation){
+            speakBtn.style.display = stopBtn.style.display = voiceSelect.style.display = "inline-block";
+            speakBtn.onclick = () => speak(translation,direction.value);
+            stopBtn.onclick = stopSpeaking;
         }
+    } catch(e){
+        outputText.value = "❌ Error connecting to server.";
+    }
+}
 
-        window.speechSynthesis.onvoiceschanged = loadVoices;
+// Speech functions
+function speak(text, dir){
+    stopSpeaking();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = dir==="en-tl"?"fil-PH":"en-US";
+    const selectedVoice = voiceSelect.value;
+    if(selectedVoice){
+        const voice = voices.find(v=>v.name===selectedVoice);
+        if(voice) utterance.voice = voice;
+    }
+    currentUtterance = utterance;
+    wave.style.display="flex";
+    utterance.onend=()=>wave.style.display="none";
+    speechSynthesis.speak(utterance);
+}
+function stopSpeaking(){speechSynthesis.cancel();currentUtterance=null;wave.style.display="none";}
 
-        async function translateText() {
-            const text = document.getElementById("inputText").value.trim();
-            const direction = document.getElementById("direction").value;
-            const output = document.getElementById("outputText");
-            const speakBtn = document.getElementById("speakBtn");
-            const stopBtn = document.getElementById("stopBtn");
-
-            if (!text) {
-                output.innerText = "⚠️ Please enter some text.";
-                return;
-            }
-
-            output.innerText = "Translating...";
-            speakBtn.style.display = "none";
-            stopBtn.style.display = "none";
-            wave.style.display = "none";
-
-            try {
-                const response = await fetch("http://127.0.0.1:8000/translate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text, direction })
-                });
-                const data = await response.json();
-                const translation = data.translation || data.error || "Error: No response.";
-                output.innerText = translation;
-
-                if (data.translation) {
-                    speakBtn.style.display = "inline-block";
-                    stopBtn.style.display = "inline-block";
-                    speakBtn.onclick = () => speak(translation, direction);
-                    stopBtn.onclick = stopSpeaking;
-                }
-            } catch (err) {
-                output.innerText = "❌ Error connecting to server.";
-            }
-        }
-
-        function speak(text, direction) {
-            stopSpeaking();
-            const utterance = new SpeechSynthesisUtterance(text);
-            const selectedVoiceName = document.getElementById("voiceSelect").value;
-            utterance.lang = direction === "en-tl" ? "fil-PH" : "en-US";
-
-            if (selectedVoiceName) {
-                const voice = voices.find(v => v.name === selectedVoiceName);
-                if (voice) utterance.voice = voice;
-            }
-
-            currentUtterance = utterance;
-            wave.style.display = "flex";
-
-            utterance.onend = () => {
-                wave.style.display = "none";
-            };
-
-            speechSynthesis.speak(utterance);
-        }
-
-        function stopSpeaking() {
-            speechSynthesis.cancel();
-            currentUtterance = null;
-            wave.style.display = "none";
-        }
-    </script>
+// Connect translate button
+translateBtn.addEventListener("click", translateText);
+updateLabels();
+updateControlsVisibility();
+</script>
 </body>
 </html>

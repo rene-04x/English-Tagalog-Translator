@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Welcome to Techy Translator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Roboto', 'Segoe UI', sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+    overflow: hidden;
+    color: #a0f4e5;
+}
+
+/* Background animated lines */
+.line {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to bottom, #00d1c1, transparent);
+    animation: move 2s linear infinite;
+}
+@keyframes move {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+}
+
+/* Container */
+.container {
+    z-index: 10;
+    text-align: center;
+}
+h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    text-shadow: 0 0 5px #00d1c1, 0 0 15px #00d1c1;
+    margin-bottom: 15px;
+}
+p {
+    font-size: 1.2rem;
+    color: #7ee3d1;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+button {
+    padding: 15px 35px;
+    font-size: 1rem;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: #00d1c1;
+    color: #0a0a0a;
+    font-weight: 600;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px #00d1c1, 0 0 20px #00d1c1;
+    transition: 0.3s;
+}
+button:hover {
+    box-shadow: 0 0 20px #00ffd0, 0 0 40px #00ffd0;
+    transform: scale(1.05);
+}
+
+/* Small floating dots */
+.dot {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #00d1c1;
+    animation: float 4s linear infinite;
+    opacity: 0.7;
+}
+@keyframes float {
+    0% { transform: translateY(0) translateX(0); }
+    50% { transform: translateY(-50px) translateX(30px); }
+    100% { transform: translateY(0) translateX(0); }
+}
+</style>
+</head>
+<body>
+
+<!-- Animated lines -->
+<div class="line" style="left: 10%; animation-delay: 0s;"></div>
+<div class="line" style="left: 25%; animation-delay: 0.5s;"></div>
+<div class="line" style="left: 40%; animation-delay: 1s;"></div>
+<div class="line" style="left: 55%; animation-delay: 1.5s;"></div>
+<div class="line" style="left: 70%; animation-delay: 2s;"></div>
+<div class="line" style="left: 85%; animation-delay: 2.5s;"></div>
+
+<!-- Floating dots -->
+<div class="dot" style="top:20%; left:15%; animation-duration:3s;"></div>
+<div class="dot" style="top:50%; left:40%; animation-duration:4s;"></div>
+<div class="dot" style="top:70%; left:70%; animation-duration:5s;"></div>
+
+<div class="container">
+    <h1>Techy Translator</h1>
+    <p>Translate text or images from English ↔ Tagalog effortlessly, with a modern interface.</p>
+    <button onclick="enterSite()">Enter</button>
+</div>
+
+<script>
+function enterSite() {
+    window.location.href = "index.html";
+}
+</script>
+</body>
+</html>

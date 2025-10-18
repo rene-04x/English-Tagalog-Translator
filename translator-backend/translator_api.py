@@ -40,7 +40,6 @@ def apply_custom_dict(text):
         text = text.replace(k, v)
     return text
 
-
 # --- AI Refinement Function ---
 def refine_translation_with_ai(original_text, raw_translation, direction):
     prompt = f"""
@@ -67,12 +66,10 @@ Return only the improved translation, no explanations.
         print(f"⚠️ AI refinement skipped: {e}")
         return raw_translation
 
-
 # --- Request Schema ---
 class TextRequest(BaseModel):
     text: str
     direction: str  # "en-tl" or "tl-en"
-
 
 # --- Translation Endpoint ---
 @app.post("/translate")
@@ -83,12 +80,13 @@ def translate(request: TextRequest):
     if not text:
         return {"translation": ""}
 
-    # Lazy-load lightweight model
+    # Lazy-load lightweight Helsinki-NLP model
     if model is None or tokenizer is None:
         try:
-            print("🧩 Loading NLLB translation model...")
+            print("🧩 Loading Helsinki-NLP translation model...")
             from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-            model_name = "facebook/nllb-200-distilled-600M"
+            # Use a smaller model suitable for free Render
+            model_name = "Helsinki-NLP/opus-mt-en-tl"
             tokenizer = AutoTokenizer.from_pretrained(model_name)
             model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
             print("✅ Model loaded successfully.")
@@ -98,18 +96,16 @@ def translate(request: TextRequest):
 
     # Set languages
     if request.direction == "en-tl":
-        src_lang, tgt_lang = "eng_Latn", "tgl_Latn"
+        src_lang, tgt_lang = "en", "tl"
     elif request.direction == "tl-en":
-        src_lang, tgt_lang = "tgl_Latn", "eng_Latn"
+        src_lang, tgt_lang = "tl", "en"
     else:
         return {"error": "Invalid direction"}
 
     # Run translation
-    tokenizer.src_lang = src_lang
-    encoded = tokenizer(text, return_tensors="pt").to(device)
+    encoded = tokenizer(text, return_tensors="pt", padding=True).to(device)
     generated_tokens = model.generate(
         **encoded,
-        forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
         max_length=200,
         num_beams=5,
         length_penalty=1.2
@@ -121,7 +117,6 @@ def translate(request: TextRequest):
     translated_text = refine_translation_with_ai(request.text, translated_text, request.direction)
 
     return {"translation": translated_text}
-
 
 # --- Dictionary Definition Endpoint ---
 @app.get("/define")
@@ -145,6 +140,10 @@ async def define(word: str):
     except Exception as e:
         return {"definition": f"❌ Error fetching definition: {str(e)}"}
 
+# --- Health check endpoint ---
+@app.get("/")
+def health():
+    return {"status": "✅ API is running"}
 
 # --- Render entrypoint ---
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ app = FastAPI()
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rene-04x.github.io/English-Tagalog-Translator/"],
+    allow_origins=["https://rene-04x.github.io"],
     allow_methods=["*"],
     allow_headers=["*"]
 )

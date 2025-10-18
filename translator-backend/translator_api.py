@@ -1,14 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import torch, os, requests
+import os, requests
 from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS for frontend (GitHub Pages)
+# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -19,15 +19,10 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# --- Global variables ---
-model = None
-tokenizer = None
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
 # Initialize OpenAI client
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# --- Custom dictionary ---
+# Custom dictionary
 custom_dict = {
     "computer": "kompyuter",
     "internet": "internet",
@@ -40,85 +35,50 @@ def apply_custom_dict(text):
         text = text.replace(k, v)
     return text
 
-# --- AI Refinement Function ---
-def refine_translation_with_ai(original_text, raw_translation, direction):
-    prompt = f"""
-You are a bilingual English–Tagalog translator.
-Refine the translation to make it accurate, natural, and grammatically correct.
-
-Direction: {direction}
-Original text: {original_text}
-Raw translation: {raw_translation}
-
-Return only the improved translation, no explanations.
-"""
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a professional English–Tagalog translator."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"⚠️ AI refinement skipped: {e}")
-        return raw_translation
-
-# --- Request Schema ---
+# Request schema
 class TextRequest(BaseModel):
     text: str
     direction: str  # "en-tl" or "tl-en"
 
-# --- Translation Endpoint ---
+# Translation endpoint (uses OpenAI GPT for translation + refinement)
 @app.post("/translate")
-def translate(request: TextRequest):
-    global model, tokenizer
-
+async def translate(request: TextRequest):
     text = request.text.strip()
     if not text:
         return {"translation": ""}
 
-    # Lazy-load lightweight Helsinki-NLP model
-    if model is None or tokenizer is None:
-        try:
-            print("🧩 Loading Helsinki-NLP translation model...")
-            from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-            # Use a smaller model suitable for free Render
-            model_name = "Helsinki-NLP/opus-mt-en-tl"
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
-            print("✅ Model loaded successfully.")
-        except Exception as e:
-            print(f"❌ Failed to load model: {e}")
-            raise HTTPException(status_code=500, detail="Model could not be loaded (memory issue).")
-
-    # Set languages
+    # Set source/target languages
     if request.direction == "en-tl":
-        src_lang, tgt_lang = "en", "tl"
+        src, tgt = "English", "Tagalog"
     elif request.direction == "tl-en":
-        src_lang, tgt_lang = "tl", "en"
+        src, tgt = "Tagalog", "English"
     else:
         return {"error": "Invalid direction"}
 
-    # Run translation
-    encoded = tokenizer(text, return_tensors="pt", padding=True).to(device)
-    generated_tokens = model.generate(
-        **encoded,
-        max_length=200,
-        num_beams=5,
-        length_penalty=1.2
-    )
-    translated_text = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
+    # Build prompt for GPT
+    prompt = f"""
+Translate the following text from {src} to {tgt}. 
+Make the translation accurate, natural, and grammatically correct.
 
-    # Apply dictionary + AI refinement
-    translated_text = apply_custom_dict(translated_text)
-    translated_text = refine_translation_with_ai(request.text, translated_text, request.direction)
+Text: {text}
+"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role":"user", "content":prompt}],
+            temperature=0
+        )
+        translation = response.choices[0].message.content.strip()
 
-    return {"translation": translated_text}
+        # Apply custom dictionary
+        translation = apply_custom_dict(translation)
 
-# --- Dictionary Definition Endpoint ---
+        return {"translation": translation}
+
+    except Exception as e:
+        return {"translation": f"❌ Error: {str(e)}"}
+
+# Dictionary definition endpoint
 @app.get("/define")
 async def define(word: str):
     try:
@@ -128,24 +88,22 @@ async def define(word: str):
             meaning = data[0]["meanings"][0]["definitions"][0]["definition"]
             return {"definition": meaning}
 
+        # fallback: GPT
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful dictionary assistant."},
-                {"role": "user", "content": f"Define '{word}' in simple English, briefly."}
-            ],
+            messages=[{"role":"user", "content": f"Define '{word}' in simple English, briefly."}]
         )
         return {"definition": response.choices[0].message.content.strip()}
 
     except Exception as e:
         return {"definition": f"❌ Error fetching definition: {str(e)}"}
 
-# --- Health check endpoint ---
+# Health check endpoint
 @app.get("/")
 def health():
     return {"status": "✅ API is running"}
 
-# --- Render entrypoint ---
+# Render entrypoint
 if __name__ == "__main__":
     import uvicorn
     import os

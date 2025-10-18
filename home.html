@@ -321,7 +321,7 @@ defineBtn.addEventListener("click", async () => {
     definitionBox.textContent = "📖 Searching definition...";
 
     try {
-        const response = await fetch(`http://127.0.0.1:8000/define?word=${encodeURIComponent(word)}`);
+        const response = await fetch(`https://translator-backend-sxbp.onrender.com/define?word=${encodeURIComponent(word)}`);
         const data = await response.json();
         definitionBox.textContent = data.definition || "No definition found.";
     } catch (err) {
@@ -352,7 +352,7 @@ async function translateText() {
     if (!text) return;
 
     try {
-        const response = await fetch("http://127.0.0.1:8000/translate", {
+        const response = await fetch("https://translator-backend-sxbp.onrender.com/translate", {
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body: JSON.stringify({text,direction:direction.value})
@@ -460,7 +460,7 @@ processImageBtn.addEventListener("click", async () => {
         ocrOutputText.value = "Translating...";
 
         // Translate text
-        const response = await fetch("http://127.0.0.1:8000/translate", {
+        const response = await fetch("https://translator-backend-sxbp.onrender.com/translate", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ text: text.trim(), direction: "en-tl" })

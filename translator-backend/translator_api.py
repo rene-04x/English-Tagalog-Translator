@@ -8,15 +8,18 @@ load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS for frontend
+# Enable CORS for frontend (GitHub Pages)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://rene-04x.github.io", "https://rene-04x.github.io/English-Tagalog-Translator/"],
+    allow_origins=[
+        "https://rene-04x.github.io",
+        "https://rene-04x.github.io/English-Tagalog-Translator/"
+    ],
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
-# --- Global variables (lazy loaded) ---
+# --- Global variables ---
 model = None
 tokenizer = None
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -80,14 +83,14 @@ def translate(request: TextRequest):
     if not text:
         return {"translation": ""}
 
-    # Lazy-load model
+    # Lazy-load lightweight model
     if model is None or tokenizer is None:
         try:
-            print("🧩 Loading translation model...")
-            from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
-            model_name = "facebook/m2m100_418M"
-            tokenizer = M2M100Tokenizer.from_pretrained(model_name)
-            model = M2M100ForConditionalGeneration.from_pretrained(model_name).to(device)
+            print("🧩 Loading NLLB translation model...")
+            from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+            model_name = "facebook/nllb-200-distilled-600M"
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
             print("✅ Model loaded successfully.")
         except Exception as e:
             print(f"❌ Failed to load model: {e}")
@@ -95,9 +98,9 @@ def translate(request: TextRequest):
 
     # Set languages
     if request.direction == "en-tl":
-        src_lang, tgt_lang = "en", "tl"
+        src_lang, tgt_lang = "eng_Latn", "tgl_Latn"
     elif request.direction == "tl-en":
-        src_lang, tgt_lang = "tl", "en"
+        src_lang, tgt_lang = "tgl_Latn", "eng_Latn"
     else:
         return {"error": "Invalid direction"}
 
@@ -106,14 +109,14 @@ def translate(request: TextRequest):
     encoded = tokenizer(text, return_tensors="pt").to(device)
     generated_tokens = model.generate(
         **encoded,
-        forced_bos_token_id=tokenizer.get_lang_id(tgt_lang),
+        forced_bos_token_id=tokenizer.convert_tokens_to_ids(tgt_lang),
         max_length=200,
         num_beams=5,
         length_penalty=1.2
     )
     translated_text = tokenizer.decode(generated_tokens[0], skip_special_tokens=True)
 
-    # Apply dictionary + refinement
+    # Apply dictionary + AI refinement
     translated_text = apply_custom_dict(translated_text)
     translated_text = refine_translation_with_ai(request.text, translated_text, request.direction)
 
@@ -148,4 +151,3 @@ if __name__ == "__main__":
     import uvicorn
     import os
     uvicorn.run("translator_api:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
-
